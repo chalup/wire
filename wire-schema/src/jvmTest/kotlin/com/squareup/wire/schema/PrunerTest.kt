@@ -1321,6 +1321,51 @@ class PrunerTest {
   }
 
   @Test
+  fun shouldNotBarfOutOnMapInOptions() {
+    val schema = buildSchema {
+      add(
+        "foo.proto".toPath(),
+        """
+             |import "google/protobuf/descriptor.proto";
+             |message FooOptions {
+             |  map<string, string> config = 1;
+             |}
+             |extend google.protobuf.MessageOptions {
+             |  repeated FooOptions foo = 12345;
+             |}
+             |
+             |message Message {
+             |  option (foo) = {
+             |    config: [
+             |      {
+             |        key: "some_key",
+             |        value: "some_value"
+             |      }
+             |    ]
+             |  };
+             |
+             |  option (foo) = {
+             |    config: [
+             |      {
+             |        key: "some_other_key",
+             |        value: "some_other_value"
+             |      }
+             |    ]
+             |  };
+             |
+             |  optional int32 b = 2;
+             |}
+              """.trimMargin()
+      )
+    }
+    schema.prune(
+      PruningRules.Builder()
+        .addRoot("Message")
+        .build()
+    )
+  }
+
+  @Test
   fun includePackage() {
     val schema = buildSchema {
       add(
